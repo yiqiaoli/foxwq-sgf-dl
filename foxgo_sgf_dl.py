@@ -7,6 +7,9 @@ def login():
     payload = json.dumps({
         "device_id_md5": "e7ab56438d7225217c9a417a87031fef",
         "client_type": 13,
+        "password": "bd857aa217fe4f11989dc86f15957284",
+        "user_identifier": "ciaobella"
+
     })
     headers = {
         'User-Agent': "UnityPlayer/2022.1.16f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
@@ -99,3 +102,7 @@ def get_kifu_by_id(chess_id, srcuid, time_stamp, token, session):
 def save_sgf_file(sgf_data, file_path):
     with open(file_path, 'w') as f:
         f.write(sgf_data.strip())
+
+
+if __name__ == '__main__':
+    print(login())

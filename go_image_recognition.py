@@ -12,7 +12,7 @@ def get_image_recognition_reserve(uid, path):
         ('gameid', (None, '369')),
         ('accounttype', (None, '2')),
         ('clienttype', (None, '64')),
-        ('picture', ('cropping.jpg', open(path, 'rb'), 'image/jpeg'))
+        ('picture', ('test.jpg', open(path, 'rb'), 'image/jpeg'))
     ]
     response = requests.post(url, files=files)
     return response.json()['Reserve']
@@ -32,21 +32,21 @@ def image_recognition_result(uid, reserve):
 
     form_data = {'cmd': 'get',
                  'uid': uid,
-                 'uin': 0,
+                 'uin': '0',
                  'webskey': '',
-                 'gameid': 369,
-                 'accounttype': 2,
-                 'clienttype': 64,
+                 'gameid': '369',
+                 'accounttype': '2',
+                 'clienttype': '64',
                  'reserve': reserve
                  }
     encoded_data = urlencode(form_data, safe='').encode('utf-8')
     response = requests.post(url, data=encoded_data, headers=headers)
-    return response.text
+    return response.json()
 
 
 if __name__ == '__main__':
     uid = '531095793'
-    path = 'cropping.jpg'
+    path = 'test.jpg'
     reserve = get_image_recognition_reserve(uid, path)
     print(reserve)
     print(image_recognition_result(uid, reserve))
