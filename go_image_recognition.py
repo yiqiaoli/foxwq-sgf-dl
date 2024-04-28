@@ -46,7 +46,7 @@ def image_recognition_result(uid, reserve):
 
 if __name__ == '__main__':
     uid = '531095793'
-    path = 'test.jpg'
+    path = 'test.jpeg'
     reserve = get_image_recognition_reserve(uid, path)
     print(reserve)
     print(image_recognition_result(uid, reserve))
