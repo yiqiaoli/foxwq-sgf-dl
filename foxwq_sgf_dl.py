@@ -1,5 +1,7 @@
 import requests
 import json
+import base64
+import configparser
 
 
 def login():
@@ -9,7 +11,6 @@ def login():
         "client_type": 13,
         "password": "bd857aa217fe4f11989dc86f15957284",
         "user_identifier": "ciaobella"
-
     })
     headers = {
         'User-Agent': "UnityPlayer/2022.1.16f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
@@ -99,10 +100,18 @@ def get_kifu_by_id(chess_id, srcuid, time_stamp, token, session):
     return response.json()['chess'].replace("\\r\\n", "\n").replace(old_text_to_replace, new_text_to_replace)
 
 
-def save_sgf_file(sgf_data, file_path):
-    with open(file_path, 'w') as f:
+def save_sgf_file(sgf_data, sgf_file_path):
+    with open(sgf_file_path, 'w') as f:
         f.write(sgf_data.strip())
 
 
 if __name__ == '__main__':
-    print(login())
+    config = configparser.ConfigParser()
+    config.read('foxwq.cfg')
+    token = config['DEFAULT']['token']
+    srcuid = config['DEFAULT']['srcuid']
+    username = config['DEFAULT']['username']
+    time_stamp = config['DEFAULT']['time_stamp']
+    token = config['DEFAULT']['token']
+    session = config['DEFAULT']['session']
+    sgf_file_path = config['DEFAULT']['sgf_file_path']
