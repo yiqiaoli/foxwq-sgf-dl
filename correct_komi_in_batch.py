@@ -18,23 +18,20 @@ def batch_replace_in_files(directory, old_text, new_text, processed_files):
             with open(filepath, 'r') as file:
                 file_content = file.read()
 
-            # 替换文本内容
             updated_content = file_content.replace(old_text, new_text)
 
-            # 写入更新后的内容
             with open(filepath, 'w') as file:
                 file.write(updated_content)
 
             processed_files.add(os.path.basename(filepath))
-            print(f"文件 '{os.path.basename(filepath)}' 更新完成")
+            print(f"File '{os.path.basename(filepath)}' update completed")
 
-    # 存储已处理的文件列表到本地
     with open('processed_files.pkl', 'wb') as file:
         pickle.dump(processed_files, file)
 
 
 if __name__ == '__main__':
-    directory_path = '/Users/yqli/Downloads/Go-SGF/'  # 将其替换为包含要修改文件的目录路径
+    directory_path = './game_records/'
     old_text_to_replace = 'KM[375]'
     new_text_to_replace = 'KM[7.5]'
     if os.path.exists('processed_files.pkl'):
