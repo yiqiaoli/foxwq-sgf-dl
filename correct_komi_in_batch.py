@@ -31,7 +31,7 @@ def batch_replace_in_files(directory, old_text, new_text, processed_files):
 
 
 if __name__ == '__main__':
-    directory_path = './game_records/'
+    directory = './game_records/'
     old_text_to_replace = 'KM[375]'
     new_text_to_replace = 'KM[7.5]'
     if os.path.exists('processed_files.pkl'):
@@ -39,4 +39,4 @@ if __name__ == '__main__':
             processed_files = pickle.load(file)
     else:
         processed_files = set()
-    batch_replace_in_files(directory_path, old_text_to_replace, new_text_to_replace, processed_files)
+    batch_replace_in_files(directory, old_text_to_replace, new_text_to_replace, processed_files)
