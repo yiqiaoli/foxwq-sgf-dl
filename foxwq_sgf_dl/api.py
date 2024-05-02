@@ -22,7 +22,7 @@ def api_request(method, url, params=None, data=None):
         return None
 
 
-def login(username, password):
+def login(user_identifier, password):
     """Authenticate user and return session details."""
     url = "https://newframe.foxwq.com/cgi/LoginByPassword"
     hash_object = hashlib.md5(password.encode('utf-8'))
@@ -32,7 +32,7 @@ def login(username, password):
         "device_id_md5": "e7ab56438d7225217c9a417a87031fef",
         "client_type": 13,
         "password": md5_hash,
-        "user_identifier": username
+        "user_identifier": user_identifier
     })
     return api_request('post', url, data=payload)
 
