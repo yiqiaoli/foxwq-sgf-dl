@@ -24,18 +24,22 @@ def get_headers():
 def api_request(method, url, params=None, data=None):
     """Send an API request and return the response JSON, or None on failure."""
     try:
-        if method.lower() == 'get':
-            response = requests.get(url, params=params, headers=get_headers())
-        elif method.lower() == 'post':
-            response = requests.post(url, data=data, headers=get_headers())
+        response = requests.request(method, url, headers=get_headers(),
+                                    json=data if method.lower() == 'post' else None,
+                                    params=params if method.lower() == 'get' else None)
         response.raise_for_status()
+        logging.info(f"Success {method.upper()} request to {url}")
         return response.json()
+    except requests.HTTPError as e:
+        logging.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+        return None
     except requests.RequestException as e:
-        logging.error(f"{method.upper()} request failed: {e}")
+        logging.error(f"Request failed: {e}")
         return None
 
 
 def login(username, password):
+    """Authenticate user and return session details."""
     url = "https://newframe.foxwq.com/cgi/LoginByPassword"
     hash_object = hashlib.md5(password.encode('utf-8'))
     md5_hash = hash_object.hexdigest()  # Get the hexadecimal representation of the digest
@@ -49,6 +53,7 @@ def login(username, password):
 
 
 def query_user_info_by_uid(srcuid, dstuid, time_stamp):
+    """Fetch user information by UID."""
     url = "https://newframe.foxwq.com/cgi/QueryUserInfoPanel"
     params = {
         'srcuid': srcuid,
@@ -59,6 +64,7 @@ def query_user_info_by_uid(srcuid, dstuid, time_stamp):
 
 
 def query_user_info_by_username(srcuid, username, time_stamp):
+    """Fetch user information by username."""
     url = "https://newframe.foxwq.com/cgi/QueryUserInfoPanel"
     params = {
         'srcuid': srcuid,
@@ -69,6 +75,7 @@ def query_user_info_by_username(srcuid, username, time_stamp):
 
 
 def get_kifu_list(srcuid, dstuid, time_stamp, token, session, last_id=None):
+    """Retrieve a list of game records."""
     url = "https://newframe.foxwq.com/chessbook/TXWQFetchChessList"
     params = {
         'type': "1",
@@ -81,10 +88,15 @@ def get_kifu_list(srcuid, dstuid, time_stamp, token, session, last_id=None):
         'lastCode': last_id
     }
     response = api_request('get', url, params=params)
-    return response['chesslist'] if response else []
+    if response and 'chesslist' in response:
+        return response['chesslist']
+    else:
+        logging.warning("Response from API is missing 'chesslist' key or is empty.")
+        return []
 
 
 def get_kifu_by_id(chess_id, srcuid, time_stamp, token, session):
+    """Fetch detailed game record by chess ID."""
     url = "https://newframe.foxwq.com/chessbook/TXWQFetchChess"
     params = {
         'chessid': chess_id,
@@ -95,10 +107,12 @@ def get_kifu_by_id(chess_id, srcuid, time_stamp, token, session):
         'session': session
     }
     response = api_request('get', url, params=params)
-    if response:
+    if response and 'chess' in response:
         sgf_data_375 = response['chess']
         return correct_komi(sgf_data_375)
-    return None
+    else:
+        logging.warning(f"Response from API is missing 'chess' key for chess ID {chess_id}.")
+        return None
 
 
 def correct_komi(sgf_data_375):
@@ -107,6 +121,7 @@ def correct_komi(sgf_data_375):
 
 
 def save_sgf_file(sgf_data, full_path):
+    """Save SGF data to a file."""
     try:
         with open(full_path, 'w') as f:
             f.write(sgf_data.strip())
@@ -119,13 +134,9 @@ def generate_filename_from_sgf(sgf_data):
     try:
         sgf_game = sgf.Sgf_game.from_string(sgf_data)
         root_node = sgf_game.get_root()
-        date = root_node.get("DT")
-        black_name = root_node.get("PB")
-        white_name = root_node.get("PW")
-
-        black_name = black_name if black_name is not None else "Unknown_Black"
-        white_name = white_name if white_name is not None else "Unknown_White"
-
+        date = root_node.get("DT", "Unknown_Date")
+        black_name = root_node.get("PB", "Unknown_Black")
+        white_name = root_node.get("PW", "Unknown_White")
         filename = f"[{date}][{black_name}]vs[{white_name}]"
         return filename
     except Exception as e:
@@ -134,18 +145,20 @@ def generate_filename_from_sgf(sgf_data):
 
 
 def download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory):
+    """Download all available Kifu records."""
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     games = get_all_games(srcuid, dstuid, time_stamp, token, session)
     for game in games:
         sgf_data = get_kifu_by_id(game['chessid'], srcuid, time_stamp, token, session)
         if sgf_data:
             file_name = generate_filename_from_sgf(sgf_data) + game['chessid'] + '.sgf'
-            if not os.path.exists(directory):
-                os.makedirs(directory)
             full_path = os.path.join(directory, file_name)
             save_sgf_file(sgf_data, full_path)
 
 
 def get_all_games(srcuid, dstuid, time_stamp, token, session):  # get all kifu
+    """Fetch all games iteratively."""
     all_games = []
     last_id = None
     while True:
