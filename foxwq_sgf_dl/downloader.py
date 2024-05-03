@@ -2,7 +2,7 @@ import os
 import logging
 import configparser
 import argparse
-from .api import login, get_kifu_list, get_kifu_by_id, query_user_info_by_username
+from .api import get_kifu_list, get_kifu_by_id, query_user_info_by_username
 from .utils import save_sgf_file, generate_filename_from_sgf
 
 
@@ -18,6 +18,11 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Download game records.")
     parser.add_argument('-c', '--config', help='Path to the configuration file.', default=None)
     parser.add_argument('-u', '--username', help='Specify a username to download their game records.', default=None)
+    parser.add_argument('-n', '--number-of-games', type=int,
+                        help='Specify the number of recent games to download. Omit to download all games.',
+                        default=None)
+    parser.add_argument('--all-games', action='store_true',
+                        help='Download all games. Overrides --number-of-games if both are specified.')
     return parser.parse_args()
 
 
@@ -31,17 +36,18 @@ def get_uid_by_username(username, srcuid, time_stamp):
         return None
 
 
-def download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory):
+def download_all_kifu(srcuid, dstuid, time_stamp, token, session, base_directory):
     """Download all available Kifu records to a specified directory."""
-    if not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
+    player_directory = os.path.join(base_directory, dstuid)
+    if not os.path.exists(player_directory):
+        os.makedirs(player_directory, exist_ok=True)
     try:
         games = get_all_games(srcuid, dstuid, time_stamp, token, session)
         for game in games:
             sgf_data = get_kifu_by_id(game['chessid'], srcuid, time_stamp, token, session)
             if sgf_data:
                 file_name = generate_filename_from_sgf(sgf_data) + game['chessid'] + '.sgf'
-                full_path = os.path.join(directory, file_name)
+                full_path = os.path.join(player_directory, file_name)
                 save_sgf_file(sgf_data, full_path)
     except Exception as e:
         logging.error(f"Error downloading Kifu records: {e}")
@@ -58,6 +64,24 @@ def get_all_games(srcuid, dstuid, time_stamp, token, session):  # get all kifu
         all_games.extend(games)
         last_id = games[-1]['chessid']  # Update last_id to the last game's ID in the batch
     return all_games
+
+
+def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_directory, number_of_games):
+    """Download a specific number of recent game records. The number of recent games should be less than 100."""
+    player_directory = os.path.join(base_directory, dstuid)
+    if not os.path.exists(player_directory):
+        os.makedirs(player_directory, exist_ok=True)
+    games = get_kifu_list(srcuid, dstuid, time_stamp, token, session, number_of_games=number_of_games)
+    if games:
+        for game in games:
+            sgf_data = get_kifu_by_id(game['chessid'], srcuid, time_stamp, token, session)
+            if sgf_data:
+                file_name = generate_filename_from_sgf(sgf_data) + game['chessid'] + '.sgf'
+                full_path = os.path.join(player_directory, file_name)
+                save_sgf_file(sgf_data, full_path)
+        logging.info(f"Downloaded the last {number_of_games} games.")
+    else:
+        logging.info("No games available to download.")
 
 
 # def validate_config(config):
@@ -94,7 +118,6 @@ def load_config(config_path=None):
 def main():
     setup_logging()
     args = parse_arguments()
-
     try:
         config = load_config(args.config)
         user_identifier = config['DEFAULT']['user_identifier']
@@ -114,7 +137,10 @@ def main():
         if not dstuid:
             logging.error("UID could not be retrieved for the provided username. Aborting operation.")
             dstuid = srcuid
-        download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory)
+        if args.all_games:
+            download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory)
+        else:
+            download_recent_games(srcuid, dstuid, time_stamp, token, session, directory, args.number_of_games)
     except Exception as e:
         logging.error(f"An error occurred during execution: {e}")
 
