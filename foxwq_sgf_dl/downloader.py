@@ -7,12 +7,13 @@ from .api import get_kifu_list, get_kifu_by_id, query_user_info_by_username
 from .utils import save_sgf_file, generate_filename_from_sgf
 
 
-def setup_logging():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                        handlers=[
-                            logging.FileHandler("debug.log"),
-                            logging.StreamHandler()
-                        ])
+def setup_logging(log_path=None):
+    """Setup logging for the application."""
+    if log_path is None:
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'debug.log')
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_path), logging.StreamHandler()])
 
 
 def parse_arguments():
@@ -22,11 +23,27 @@ def parse_arguments():
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-n', '--number-of-games', type=int,
-                       help='Specify the number of recent games to download. If omitted, defaults to downloading all games unless --all-games is specified.',
+                       help='Specify the number of recent games to download. '
+                            'If omitted, defaults to downloading all games unless --all-games is specified.',
                        default=None)
     group.add_argument('--all-games', action='store_true',
                        help='Download all games. Overrides --number-of-games if both are specified.')
     return parser.parse_args()
+
+
+def load_config(config_path=None):
+    """Load configuration from a given path or use the default configuration."""
+    if config_path is None:
+        # Load default configuration from the package directory
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        config_path = os.path.join(base_dir, 'config.cfg')
+        print(f"No custom config provided. Using default config at {config_path}")
+
+    config = configparser.ConfigParser()
+    if not config.read(config_path):
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    # validate_config(config)
+    return config
 
 
 def get_uid_by_username(username, srcuid, time_stamp):
@@ -114,21 +131,6 @@ def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_direc
 #     return filename
 
 
-def load_config(config_path=None):
-    """Load configuration from a given path or use the default configuration."""
-    if config_path is None:
-        # Load default configuration from the package directory
-        base_dir = os.path.dirname(os.path.dirname(__file__))
-        config_path = os.path.join(base_dir, 'config.cfg')
-        print(f"No custom config provided. Using default config at {config_path}")
-
-    config = configparser.ConfigParser()
-    if not config.read(config_path):
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    # validate_config(config)
-    return config
-
-
 def load_downloaded_game_ids(player_directory):
     """ Load the set of downloaded game IDs from a file in the player's directory. """
     filepath = os.path.join(player_directory, 'downloaded_game_ids.json')
@@ -147,18 +149,18 @@ def save_downloaded_game_ids(downloaded_ids, player_directory):
 
 
 def main():
-    setup_logging()
     args = parse_arguments()
+    setup_logging(args.log_path)
     try:
         config = load_config(args.config)
-        user_identifier = config['DEFAULT']['user_identifier']
-        password = config['DEFAULT']['password']
-        srcuid = config['DEFAULT']['srcuid']
-        username = config['DEFAULT']['username']
-        time_stamp = config['DEFAULT']['time_stamp']
-        token = config['DEFAULT']['token']
-        session = config['DEFAULT']['session']
-        directory = config['DEFAULT']['directory']
+        user_identifier = config.get('DEFAULT', 'user_identifier')
+        password = config.get('DEFAULT', 'password')
+        srcuid = config.get('DEFAULT', 'srcuid')
+        username = config.get('DEFAULT', 'username')
+        time_stamp = config.get('DEFAULT', 'time_stamp')
+        token = config.get('DEFAULT', 'token')
+        session = config.get('DEFAULT', 'session')
+        directory = config.get('DEFAULT', 'directory', fallback='../games')
 
         dstuid = srcuid  # Default to srcuid
         if args.username is not None:
