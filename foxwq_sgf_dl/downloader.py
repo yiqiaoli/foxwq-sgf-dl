@@ -3,7 +3,7 @@ import logging
 import configparser
 import argparse
 import json
-from .api import get_kifu_list, get_kifu_by_id, query_user_info_by_username
+from .api import get_game_metadata_list, get_game_details, query_user_info_by_username
 from .utils import save_sgf_file, generate_filename_from_sgf
 
 
@@ -17,7 +17,7 @@ def setup_logging(log_path=None):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Download game records.")
+    parser = argparse.ArgumentParser(description="Download Go game records from FoxWQ.")
     parser.add_argument('-c', '--config', help='Path to the configuration file.', default=None)
     parser.add_argument('-u', '--username', help='Specify a username to download their game records.', default=None)
 
@@ -42,7 +42,7 @@ def load_config(config_path=None):
     config = configparser.ConfigParser()
     if not config.read(config_path):
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    # validate_config(config)
+    validate_config(config)
     return config
 
 
@@ -56,40 +56,43 @@ def get_uid_by_username(username, srcuid, time_stamp):
         return None
 
 
-def download_all_kifu(srcuid, dstuid, time_stamp, token, session, base_directory):
-    """Download all available Kifu records to a specified directory."""
+def download_all_games(srcuid, dstuid, time_stamp, token, session, base_directory):
+    """Download all available game records to a specified directory."""
     player_directory = os.path.join(base_directory, dstuid)
     if not os.path.exists(player_directory):
         os.makedirs(player_directory, exist_ok=True)
     downloaded_ids = load_downloaded_game_ids(player_directory)
+    games = []  # Used to remember actual games downloaded this time
 
     try:
-        games = get_all_games(srcuid, dstuid, time_stamp, token, session)
-        for game in games:
-            if game['chessid'] in downloaded_ids:
+        game_metadata_list = get_all_game_metadata(srcuid, dstuid, time_stamp, token, session)
+        for metadata in game_metadata_list:
+            if metadata['chessid'] in downloaded_ids:
                 continue
-            sgf_data = get_kifu_by_id(game['chessid'], srcuid, time_stamp, token, session)
+            sgf_data = get_game_details(metadata['chessid'], srcuid, time_stamp, token, session)
             if sgf_data:
-                file_name = generate_filename_from_sgf(sgf_data) + game['chessid'] + '.sgf'
+                file_name = generate_filename_from_sgf(sgf_data) + metadata['chessid'] + '.sgf'
                 full_path = os.path.join(player_directory, file_name)
                 save_sgf_file(sgf_data, full_path)
-                downloaded_ids.add(game['chessid'])
+                downloaded_ids.add(metadata['chessid'])
+                games.append(metadata)
         save_downloaded_game_ids(downloaded_ids, player_directory)
+        logging.info(f"Successfully downloaded {len(games)} games.")
     except Exception as e:
         logging.error(f"Error downloading Kifu records: {e}")
 
 
-def get_all_games(srcuid, dstuid, time_stamp, token, session):  # get all kifu
+def get_all_game_metadata(srcuid, dstuid, time_stamp, token, session):  # get all kifu
     """Fetch all games iteratively."""
-    all_games = []
+    all_metadata = []
     last_id = None
     while True:
-        games = get_kifu_list(srcuid, dstuid, time_stamp, token, session, last_id)
-        if not games:
+        metadata_list = get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id)
+        if not metadata_list:
             break  # Break the loop if no more games are returned
-        all_games.extend(games)
-        last_id = games[-1]['chessid']  # Update last_id to the last game's ID in the batch
-    return all_games
+        all_metadata.extend(metadata_list)
+        last_id = metadata_list[-1]['chessid']  # Update last_id to the last game's ID in the batch
+    return all_metadata
 
 
 def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_directory, number_of_games):
@@ -98,31 +101,34 @@ def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_direc
     if not os.path.exists(player_directory):
         os.makedirs(player_directory, exist_ok=True)
     downloaded_ids = load_downloaded_game_ids(player_directory)
-    games = get_kifu_list(srcuid, dstuid, time_stamp, token, session, number_of_games=number_of_games)
-    if games:
-        for game in games:
-            if game['chessid'] in downloaded_ids:
+    games = []
+    game_metadata_list = get_game_metadata_list(srcuid, dstuid, time_stamp, token, session,
+                                                number_of_games=number_of_games)
+    if game_metadata_list:
+        for metadata in game_metadata_list:
+            if metadata['chessid'] in downloaded_ids:
                 continue  # Skip already downloaded games
-            sgf_data = get_kifu_by_id(game['chessid'], srcuid, time_stamp, token, session)
+            sgf_data = get_game_details(metadata['chessid'], srcuid, time_stamp, token, session)
             if sgf_data:
-                file_name = generate_filename_from_sgf(sgf_data) + game['chessid'] + '.sgf'
+                file_name = generate_filename_from_sgf(sgf_data) + metadata['chessid'] + '.sgf'
                 full_path = os.path.join(player_directory, file_name)
                 save_sgf_file(sgf_data, full_path)
-                downloaded_ids.add(game['chessid'])
+                downloaded_ids.add(metadata['chessid'])
+                games.append(metadata)
         save_downloaded_game_ids(downloaded_ids, player_directory)
         logging.info(f"Downloaded the last {number_of_games} games.")
     else:
         logging.info("No games available to download.")
 
 
-# def validate_config(config):
-#     """Validate required configuration keys."""
-#     required_keys = ['srcuid', 'username', 'password', 'time_stamp', 'token', 'session', 'directory']
-#     for key in required_keys:
-#         if key not in config['DEFAULT']:
-#             raise ValueError(f"Missing required configuration key: {key}")
-#
-#
+def validate_config(config):
+    """Validate required configuration keys."""
+    required_keys = ['user_identifier', 'password', 'srcuid', 'time_stamp', 'token', 'session', 'directory']
+    missing_keys = [key for key in required_keys if not config.get('DEFAULT', key, fallback=None)]
+    if missing_keys:
+        raise ValueError(f"Missing required configuration keys: {', '.join(missing_keys)}")
+
+
 # def sanitize_filename(filename):
 #     """Remove or replace characters in filenames that are invalid for file systems."""
 #     invalid_chars = '<>:"/\\|?*'
@@ -150,7 +156,7 @@ def save_downloaded_game_ids(downloaded_ids, player_directory):
 
 def main():
     args = parse_arguments()
-    setup_logging(args.log_path)
+    setup_logging()
     try:
         config = load_config(args.config)
         user_identifier = config.get('DEFAULT', 'user_identifier')
@@ -173,13 +179,16 @@ def main():
         if args.number_of_games is not None:
             download_recent_games(srcuid, dstuid, time_stamp, token, session, directory, args.number_of_games)
         elif args.all_games:
-            download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory)
+            download_all_games(srcuid, dstuid, time_stamp, token, session, directory)
         else:
             # Default action if no specific command is provided
-            download_all_kifu(srcuid, dstuid, time_stamp, token, session, directory)
-
+            download_all_games(srcuid, dstuid, time_stamp, token, session, directory)
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Execution interrupted.")
     except Exception as e:
         logging.error(f"An error occurred during execution: {e}")
+    else:
+        logging.info("Execution completed successfully.")
 
 
 if __name__ == '__main__':

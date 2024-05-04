@@ -59,8 +59,8 @@ def query_user_info_by_username(srcuid, username, time_stamp):
     return api_request('get', url, params=params)
 
 
-def get_kifu_list(srcuid, dstuid, time_stamp, token, session, last_id=None, number_of_games=None):
-    """Retrieve a list of game records."""
+def get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id=None, number_of_games=None):
+    """Retrieve a list of game metadata."""
     url = "https://newframe.foxwq.com/chessbook/TXWQFetchChessList"
     params = {
         'type': 1,
@@ -80,8 +80,8 @@ def get_kifu_list(srcuid, dstuid, time_stamp, token, session, last_id=None, numb
         return []
 
 
-def get_kifu_by_id(chess_id, srcuid, time_stamp, token, session):
-    """Fetch detailed game record by chess ID."""
+def get_game_details(chess_id, srcuid, time_stamp, token, session):
+    """Fetch detailed game record by game ID."""
     url = "https://newframe.foxwq.com/chessbook/TXWQFetchChess"
     params = {
         'chessid': chess_id,
