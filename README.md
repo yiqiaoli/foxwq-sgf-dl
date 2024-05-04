@@ -49,32 +49,32 @@ To use this package, you first need to have Python installed. Follow these steps
 
 To view the help information for the command-line tool, use:
 
-   ```shell
-   foxwq_sgf_dl --help
-   ```
+```shell
+foxwq_sgf_dl --help
+```
 
 ### How to run the package
 
 After setting up the package, you can run the following commands:
 
-1. **Download All Games**:
-   ```shell
-   foxwq_sgf_dl --config path/to/config.cfg --all-games
-   ```
+#### **Download All Games**:
+```shell
+foxwq_sgf_dl --config path/to/config.cfg --all-games
+```
 
 Replace `path/to/config.cfg` with the path to your configuration file.
 
-2. **Download Recent Games**:
-   ```shell
-   foxwq_sgf_dl --config path/to/config.cfg --number-of-games 10
-   ```
+#### **Download Recent Games**:
+```shell
+foxwq_sgf_dl --config path/to/config.cfg --number-of-games 10
+```
 
 Replace `10` with the desired number of recent games to download.
 
-3. **Download Games with `foxwq_sgf_dl` (Default Behavior):
-   ```shell
-   foxwq_sgf_dl
-   ```
+#### **Download Games with `foxwq_sgf_dl` (Default Behavior)**:
+```shell
+foxwq_sgf_dl
+```
 
 When run without any options, `foxwq_sgf_dl` uses the default configuration file and downloads all games unless a
 specific number of recent games is specified in the configuration file.
