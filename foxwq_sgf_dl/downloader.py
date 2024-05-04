@@ -36,7 +36,7 @@ def load_config(config_path=None):
     if config_path is None:
         # Load default configuration from the package directory
         base_dir = os.path.dirname(os.path.dirname(__file__))
-        config_path = os.path.join(base_dir, 'sample_config.cfg')
+        config_path = os.path.join(base_dir, 'config.cfg')
         print(f"No custom config provided. Using default config at {config_path}")
 
     config = configparser.ConfigParser()
@@ -123,7 +123,7 @@ def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_direc
 
 def validate_config(config):
     """Validate required configuration keys."""
-    required_keys = ['user_identifier', 'password', 'srcuid', 'time_stamp', 'token', 'session', 'directory']
+    required_keys = ['login_identifier', 'password', 'srcuid', 'time_stamp', 'token', 'session', 'directory']
     missing_keys = [key for key in required_keys if not config.get('DEFAULT', key, fallback=None)]
     if missing_keys:
         raise ValueError(f"Missing required configuration keys: {', '.join(missing_keys)}")
