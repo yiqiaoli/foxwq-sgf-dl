@@ -3,7 +3,7 @@ import logging
 import configparser
 import argparse
 import json
-from .api import get_game_metadata_list, get_game_details, query_user_info_by_username
+from .api import login, get_game_metadata_list, get_game_details, query_user_info_by_username
 from .utils import save_sgf_file, generate_filename_from_sgf
 
 
@@ -159,22 +159,29 @@ def main():
     setup_logging()
     try:
         config = load_config(args.config)
-        user_identifier = config.get('DEFAULT', 'user_identifier')
+        login_identifier = config.get('DEFAULT', 'login_identifier')
         password = config.get('DEFAULT', 'password')
         srcuid = config.get('DEFAULT', 'srcuid')
-        username = config.get('DEFAULT', 'username')
+        search_username = config.get('DEFAULT', 'search_username')
         time_stamp = config.get('DEFAULT', 'time_stamp')
         token = config.get('DEFAULT', 'token')
         session = config.get('DEFAULT', 'session')
         directory = config.get('DEFAULT', 'directory', fallback='../games')
 
+        # # Get srcuid from login
+        # login_response = login(login_identifier, password)
+        # if not login_response or 'uid' not in login_response:
+        #     logging.error("Login failed or 'uid' not found in response. Aborting operation.")
+        #     return
+        # srcuid = login_response['uid']
+
         dstuid = srcuid  # Default to srcuid
         if args.username is not None:
             dstuid = get_uid_by_username(args.username, srcuid, time_stamp)
-        elif username:
-            dstuid = get_uid_by_username(username, srcuid, time_stamp)
+        elif search_username:
+            dstuid = get_uid_by_username(search_username, srcuid, time_stamp)
         if not dstuid:
-            logging.error("UID could not be retrieved for the provided username. Aborting operation.")
+            logging.error("UID could not be retrieved for the provided search_username. Aborting operation.")
             return
         if args.number_of_games is not None:
             download_recent_games(srcuid, dstuid, time_stamp, token, session, directory, args.number_of_games)
