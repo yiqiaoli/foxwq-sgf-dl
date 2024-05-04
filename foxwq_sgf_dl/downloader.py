@@ -36,7 +36,7 @@ def load_config(config_path=None):
     if config_path is None:
         # Load default configuration from the package directory
         base_dir = os.path.dirname(os.path.dirname(__file__))
-        config_path = os.path.join(base_dir, 'config.cfg')
+        config_path = os.path.join(base_dir, 'sample_config.cfg')
         print(f"No custom config provided. Using default config at {config_path}")
 
     config = configparser.ConfigParser()

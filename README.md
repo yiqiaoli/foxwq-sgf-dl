@@ -1,58 +1,107 @@
-# go-sgf-analyzer
+# foxwq-sgf-dl
 
-`go-sgf-analyzer` is a Python utility designed to download and analyze Go game records in SGF format from the FoxWQ
-platform. This tool provides a convenient way to programmatically access and process Go game records for analysis and
-study.
+A Python package for downloading Go game records from FoxWQ.
 
 ## Features
 
-- Download SGF files directly from FoxWQ.
-- Scan and recognize the images of a board and generate SGF files.
-- Easy to use command-line interface.
+- Login and authenticate with FoxWQ
+- Download Go game records (SGF format)
+- Retrieve user information
+- Flexible configuration options
 
-## Getting Started
+## Installation
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing
-purposes.
+To use this package, you first need to have Python installed. Follow these steps to set it up:
 
-### Prerequisites
+1. **Clone the Repository**:
 
-Before you begin, ensure you have Python installed on your system. You can download Python
-from [here](https://www.python.org/downloads/). This project uses Python 3.7 or later.
+   ```shell
+   git clone https://github.com/yiqiaoli/foxwq-sgf-dl.git
+   ```
+2. **Navigate to the Project Directory**:
+   ```shell
+   cd foxwq-sgf-dl
+   ```
+3. **Install Dependencies:If you're using `venv`**:
+   ```shell
+   python -m venv venv
+   source venv/bin/activate  # on Linux/MacOS
+   venv\Scripts\activate.bat  # on Windows
+   ```
+   Then install the requirements:
+   ```shell
+   pip install -r requirements.txt
+   ```
+   Alternatively, you can install the package directly:
+   ```shell
+   pip install . 
+   ```
+## Usage
+### Command-Line Help
+To view the help information for the command-line tool, use:
+   ```shell
+   foxwq_sgf_dl --help
+   ```
 
-### Installation
+### For Non-Developers
+After setting up the package, you can run the following commands:
+1. **Download All Games**:
+   ```shell
+   foxwq_sgf_dl --config path/to/config.cfg --all-games
+   ```
+Replace `path/to/config.cfg` with the path to your configuration file.
 
-To install `go-sgf-analyzer`, follow these steps:
+2. **Download Recent Games**:
+   ```shell
+   foxwq_sgf_dl --config path/to/config.cfg --number-of-games 10
+   ```
+Replace `10` with the desired number of recent games to download.
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/yourusername/go-sgf-analyzer.git
-    cd foxwq-sgf-dl
-    ```
+3. **Download Games with `foxwq_sgf_dl` (Default Behavior):
+   ```shell
+   foxwq_sgf_dl
+   ```
+When run without any options, `foxwq_sgf_dl` uses the default configuration file and downloads all games unless a specific number of recent games is specified in the configuration file.
 
-2. **Set up a virtual environment** (optional but recommended):
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
-
-3. **Install the package**:
-    ```bash
-    pip install .
-    ```
-
-4. **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### Usage
-
-To use `go-sgf-analyzer`, you can execute the command-line interface or import the package in your Python scripts:
-
-**Command-line example**:
-
-```bash
-# Example command to download and analyze games
-python foxwq_sgf_dl --download [options]
+### For Developers
+Developers can run the package directly using the command:
+```shell
+python -m foxwq_sgf_dl.downloader
 ```
+
+## Configuration
+The package reads configuration from a `.cfg` file. An example configuration file might look like this:
+```ini
+[DEFAULT]
+user_identifier = "your_username"
+password = "your_password"
+srcuid = 1233456
+username = "target_username"
+time_stamp = 1714582201198
+token = "your_token"
+session = "your_session"
+directory = "../games"
+```
+
+### Sample Configuration File
+A sample configuration file is provided as `sample_config.cfg` for your reference.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
