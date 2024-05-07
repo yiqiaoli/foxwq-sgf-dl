@@ -28,6 +28,10 @@ def parse_arguments():
                        default=None)
     group.add_argument('--all-games', action='store_true',
                        help='Download all games. Overrides --number-of-games if both are specified.')
+    parser.add_argument('--game-type', type=int, choices=[1, 2],
+                        help="Specify the type of game to download: 1 for ranked games, 2 for casual games.",
+                        default=None)
+
     return parser.parse_args()
 
 
@@ -56,7 +60,7 @@ def get_uid_by_username(username, srcuid, time_stamp):
         return None
 
 
-def download_all_games(srcuid, dstuid, time_stamp, token, session, base_directory):
+def download_all_games(srcuid, dstuid, time_stamp, token, session, base_directory, game_type=None):
     """Download all available game records to a specified directory."""
     player_directory = os.path.join(base_directory, dstuid)
     if not os.path.exists(player_directory):
@@ -65,7 +69,7 @@ def download_all_games(srcuid, dstuid, time_stamp, token, session, base_director
     games = []  # Used to remember actual games downloaded this time
 
     try:
-        game_metadata_list = get_all_game_metadata(srcuid, dstuid, time_stamp, token, session)
+        game_metadata_list = get_all_game_metadata(srcuid, dstuid, time_stamp, token, session, game_type=game_type)
         for metadata in game_metadata_list:
             if metadata['chessid'] in downloaded_ids:
                 continue
@@ -82,12 +86,12 @@ def download_all_games(srcuid, dstuid, time_stamp, token, session, base_director
         logging.error(f"Error downloading Kifu records: {e}")
 
 
-def get_all_game_metadata(srcuid, dstuid, time_stamp, token, session):  # get all kifu
+def get_all_game_metadata(srcuid, dstuid, time_stamp, token, session, game_type=None):
     """Fetch all games iteratively."""
     all_metadata = []
     last_id = None
     while True:
-        metadata_list = get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id)
+        metadata_list = get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id, game_type=game_type)
         if not metadata_list:
             break  # Break the loop if no more games are returned
         all_metadata.extend(metadata_list)
@@ -95,7 +99,8 @@ def get_all_game_metadata(srcuid, dstuid, time_stamp, token, session):  # get al
     return all_metadata
 
 
-def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_directory, number_of_games):
+def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_directory, number_of_games,
+                          game_type=None):
     """Download a specific number of recent game records. The number of recent games should be less than 100."""
     player_directory = os.path.join(base_directory, dstuid)
     if not os.path.exists(player_directory):
@@ -103,7 +108,7 @@ def download_recent_games(srcuid, dstuid, time_stamp, token, session, base_direc
     downloaded_ids = load_downloaded_game_ids(player_directory)
     games = []
     game_metadata_list = get_game_metadata_list(srcuid, dstuid, time_stamp, token, session,
-                                                number_of_games=number_of_games)
+                                                number_of_games=number_of_games, game_type=game_type)
     if game_metadata_list:
         for metadata in game_metadata_list:
             if metadata['chessid'] in downloaded_ids:
@@ -166,6 +171,8 @@ def main():
         time_stamp = config.get('DEFAULT', 'time_stamp')
         token = config.get('DEFAULT', 'token')
         session = config.get('DEFAULT', 'session')
+        game_type = config.get('DEFAULT', 'game_type', fallback=None)
+        game_type = int(game_type) if game_type in ['1', '2'] else None
         directory = config.get('DEFAULT', 'directory', fallback='../games')
 
         # # Get srcuid from login
@@ -186,10 +193,12 @@ def main():
         if args.number_of_games is not None:
             download_recent_games(srcuid, dstuid, time_stamp, token, session, directory, args.number_of_games)
         elif args.all_games:
-            download_all_games(srcuid, dstuid, time_stamp, token, session, directory)
+            download_all_games(srcuid, dstuid, time_stamp, token, session, directory,
+                               game_type=args.game_type or game_type)
         else:
             # Default action if no specific command is provided
-            download_all_games(srcuid, dstuid, time_stamp, token, session, directory)
+            download_all_games(srcuid, dstuid, time_stamp, token, session, directory,
+                               game_type=args.game_type or game_type)
     except (KeyboardInterrupt, SystemExit):
         logging.info("Execution interrupted.")
     except Exception as e:

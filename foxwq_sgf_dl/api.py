@@ -59,8 +59,14 @@ def query_user_info_by_username(srcuid, username, time_stamp):
     return api_request('get', url, params=params)
 
 
-def get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id=None, number_of_games=None):
-    """Retrieve a list of game metadata."""
+def get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id=None, number_of_games=None,
+                           game_type=None):
+    """Retrieve a list of game metadata.
+    params:
+    game_type = 1 # for Ranked Games
+    game_type = 2 # for Custom Games
+    if not specified, defaults to None
+    """
     url = "https://newframe.foxwq.com/chessbook/TXWQFetchChessList"
     params = {
         'type': 1,
@@ -74,7 +80,11 @@ def get_game_metadata_list(srcuid, dstuid, time_stamp, token, session, last_id=N
     }
     response = api_request('get', url, params=params)
     if response and 'chesslist' in response:
-        return response['chesslist']
+        game_metadata_list = [x for x in response['chesslist'] if x['boardsize'] == 19]
+        if game_type is not None:
+            return [x for x in game_metadata_list if x['gametype'] == game_type]
+        else:
+            return game_metadata_list
     else:
         logging.warning("Response from API is missing 'chesslist' key or is empty.")
         return []
